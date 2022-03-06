@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     FILE *fp = fopen(argv[1], "r");
     if (!fp) {
         fprintf(stderr, "Error opening file '%s' for reading.\n", argv[1]);
-        return -1;
+        return -2;
     }
 
     // initialize hash value
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     while (len = fread(buffer, 1, sizeof(buffer), fp)) {
         if (ferror(fp)) {
             fprintf(stderr, "Error reading file '%s'.\n", argv[1]);
-            return 1;
+            return -3;
         }
         total += len;
         // preserve value of len by breaking on end of file
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
         }
         if (len % 64 != 0) {
             fprintf(stderr, "Error: len must be a 64 multiple.\n");
-            return 2;
+            return -4;
         }
         sha256_block_data_order(H, buffer, len / 64);
     }
