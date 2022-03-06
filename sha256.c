@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <byteswap.h>
 
 void sha256_block_data_order (uint32_t *ctx, const void *in, size_t num);
 
@@ -16,6 +17,8 @@ const uint32_t H_0[8] = {
 	0x1f83d9ab,
 	0x5be0cd19,
 };
+
+uint8_t buffer[1<<22]; // 4M
 
 int main(int argc, char* argv[]) {
 	uint32_t i;
@@ -38,23 +41,27 @@ int main(int argc, char* argv[]) {
 	memcpy(H, H_0, sizeof(H_0));
 
 	// read file and calculate hash
-	uint64_t bits = 0;
-	uint8_t buffer[64];
+	uint64_t total = 0;
 	size_t len;
 	while (len = fread(buffer, 1, sizeof(buffer), fp)) {
         if (ferror(fp)) {
 		    fprintf(stderr, "Error reading file '%s'.\n", argv[1]);
             return 1;
         }
-		bits += len * 8;
+		total += len;
 		// preserve value of len by breaking on end of file
 		if (feof(fp)) {
 			break;
 		}
-		sha256_block_data_order(H, buffer, 1);
+		sha256_block_data_order(H, buffer, len / 64);
 	}
-
-	buffer[len] = 0x80;
+	uint32_t n = len / 64;              // # full blocks
+    if (n > 0) {
+	    sha256_block_data_order(H, buffer, n);
+    }
+	uint32_t base = 64 * n;             // addr base last block
+    len = len % 64;                     // read on last block
+	buffer[base + len] = 0x80;
 	// add padding
 	if (len < 56) {
 		// padd current block to 56 byte
@@ -62,20 +69,18 @@ int main(int argc, char* argv[]) {
 	} else {
 		// fill up current block and update hash
 		for (i = len + 1; i < 64; i++) {
-			buffer[i] = 0x00;
+			buffer[base + i] = 0x00;
 		}
-		sha256_block_data_order(H, buffer,1);
+		sha256_block_data_order(H, buffer + base, 1);
 		// add (almost) one block of zero bytes
 		i = 0;
 	}
-	while (i < 56) {
-		buffer[i++] = 0x00;
+	for (; i < 56; i++) {
+		buffer[base + i] = 0x00;
 	}
 	// add message length in bits in big endian
-	for (i = 0; i < 8; i++) {
-		buffer[63 - i] = bits >> (i * 8);
-	}
-	sha256_block_data_order(H, buffer,1);
+	*(uint64_t*)(buffer + base + 56) = bswap_64(total << 3);
+	sha256_block_data_order(H, buffer + base, 1);
 
 	// convert hash to char array (in correct order)
 	for (i = 0; i < 8; i++) {
@@ -85,8 +90,6 @@ int main(int argc, char* argv[]) {
 		buffer[4 * i + 3] = H[i];
 	}
 
-	// print hash
-	printf("Hash:\t");
 	for (i = 0; i < 32; i++) {
 		printf("%02x", buffer[i]);
 	}
