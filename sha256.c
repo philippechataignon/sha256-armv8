@@ -82,17 +82,9 @@ int main(int argc, char* argv[]) {
 	*(uint64_t*)(buffer + base + 56) = bswap_64(total << 3);
 	sha256_block_data_order(H, buffer + base, 1);
 
-	// convert hash to char array (in correct order)
 	for (i = 0; i < 8; i++) {
-		buffer[4 * i + 0] = H[i] >> 24;
-		buffer[4 * i + 1] = H[i] >> 16;
-		buffer[4 * i + 2] = H[i] >>  8;
-		buffer[4 * i + 3] = H[i];
+		printf("%08x", H[i]);
 	}
-
-	for (i = 0; i < 32; i++) {
-		printf("%02x", buffer[i]);
-	}
-	printf("\n");
+	printf("  %s\n", argv[1]);
 	return 0;
 }
