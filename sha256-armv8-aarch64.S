@@ -7,28 +7,26 @@
 .type	sha256_block_data_order,%function
 .align  2
 
-# void sha256_block_data_order (uint32_t *x0, const void *x1, size_t x2);
+# void sha256_block_data_order (uint32_t *x0=H, const void *x1=buffer, size_t x2=n);
 
 sha256_block_data_order:
 
 .Lsha256prolog:
-    stp       x29, x30, [sp,#-64]!
-    mov       x29, sp
-    adr       x3, .LKConstant256
+    sub       sp, sp, #64                   // get 64 bits on stack
     str       q8, [sp, #16]
-    ld1       {v16.4s-v19.4s}, [x3], #64
-    ld1       {v0.4s}, [x0], #16
-    ld1       {v20.4s-v23.4s}, [x3], #64
-    add       x2, x1, x2, lsl #6
-    ld1       {v1.4s}, [x0]
-    ld1       {v24.4s-v27.4s}, [x3], #64
-    sub       x0, x0, #16
     str       q9, [sp, #32]
     str       q10, [sp, #48]
+    adr       x3, .LKConstant256            // load 256 int constants in v16-v31
+    ld1       {v16.4s-v19.4s}, [x3], #64
+    ld1       {v20.4s-v23.4s}, [x3], #64
+    ld1       {v24.4s-v27.4s}, [x3], #64
     ld1       {v28.4s-v31.4s}, [x3], #64
+    add       x2, x1, x2, lsl #6            // x2 = end addr = x1 + 64 * n
+    ld1       {v0.4s}, [x0], #16            // load init H in v0-v1
+    ld1       {v1.4s}, [x0]
+    sub       x0, x0, #16                   // restore x0 to initial value
     
 .Lsha256loop:
-
     ld1       {v5.16b-v8.16b}, [x1], #64
     mov       v2.16b, v0.16b
     mov       v3.16b, v1.16b
@@ -136,7 +134,7 @@ sha256_block_data_order:
     ldr       q10, [sp, #48]
     ldr       q9, [sp, #32]
     ldr       q8, [sp, #16]
-    ldr       x29, [sp], #64
+    add       sp, sp, #64           // restore sp
     ret
 
 .align  5
