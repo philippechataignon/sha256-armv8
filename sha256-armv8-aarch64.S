@@ -1,4 +1,3 @@
-
 .text
 .arch   armv8-a+crypto
 
@@ -7,10 +6,12 @@
 .global	sha256_block_data_order
 .type	sha256_block_data_order,%function
 .align  2
+
+# void sha256_block_data_order (uint32_t *x0, const void *x1, size_t x2);
+
 sha256_block_data_order:
 
 .Lsha256prolog:
-
     stp       x29, x30, [sp,#-64]!
     mov       x29, sp
     adr       x3, .LKConstant256
@@ -159,5 +160,3 @@ sha256_block_data_order:
 
 .size   sha256_block_data_order,.-sha256_block_data_order
 .align	2
-
-
