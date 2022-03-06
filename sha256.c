@@ -17,7 +17,6 @@ const uint32_t H_0[8] = {
 	0x5be0cd19,
 };
 
-
 void sha256_print_hash(uint32_t *H, const char *title) {
 	printf("-----------------------------------------------------------------------------------------\n");
 	printf("| %-85s |\n", title);
@@ -26,20 +25,6 @@ void sha256_print_hash(uint32_t *H, const char *title) {
 	printf("| %08x | %08x | %08x | %08x | %08x | %08x | %08x | %08x |\n", H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
 	printf("-----------------------------------------------------------------------------------------\n");
 }
-
-
-// initialize hash value
-void sha256_init(uint32_t *H) {
-	H[0] = 0x6a09e667;
-	H[1] = 0xbb67ae85;
-	H[2] = 0x3c6ef372;
-	H[3] = 0xa54ff53a;
-	H[4] = 0x510e527f;
-	H[5] = 0x9b05688c;
-	H[6] = 0x1f83d9ab;
-	H[7] = 0x5be0cd19;
-}
-
 
 int main(int argc, char **argv) {
 	unsigned int i;
@@ -59,11 +44,11 @@ int main(int argc, char **argv) {
 
 	// initialize hash value
 	uint32_t H[8];
-	memcpy(H, H_0, 8*4);
+	memcpy(H, H_0, sizeof(H_0));
 
 	// read file and calculate hash
 	uint64_t bits = 0;
-	unsigned char buffer[64];
+	uint8_t buffer[64];
 	size_t len;
 	while (len = fread(buffer, 1, sizeof(buffer), fp)) {
 		bits += len * 8;
@@ -123,4 +108,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
