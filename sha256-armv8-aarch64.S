@@ -21,7 +21,6 @@ sha256_block_data_order:
     ld1       {v20.4s-v23.4s}, [x3], #64
     ld1       {v24.4s-v27.4s}, [x3], #64
     ld1       {v28.4s-v31.4s}, [x3], #64
-    add       x2, x1, x2, lsl #6            // x2 = end addr = x1 + 64 * n
     ld1       {v0.4s}, [x0], #16            // load init H in v0-v1
     ld1       {v1.4s}, [x0]
     sub       x0, x0, #16                   // restore x0 to initial value
@@ -30,7 +29,6 @@ sha256_block_data_order:
     ld1       {v5.16b-v8.16b}, [x1], #64
     mov       v2.16b, v0.16b
     mov       v3.16b, v1.16b
-
     rev32     v5.16b, v5.16b
     rev32     v6.16b, v6.16b
     add       v9.4s, v5.4s, v16.4s
@@ -123,13 +121,12 @@ sha256_block_data_order:
     mov       v4.16b, v2.16b
     sha256h   q2, q3, v10.4s
     sha256h2  q3, q4, v10.4s
-    cmp       x1, x2
     add       v1.4s, v1.4s, v3.4s
     add       v0.4s, v0.4s, v2.4s
-    b.ne      .Lsha256loop
+    subs      x2, x2, #1
+    bne       .Lsha256loop
 
 .Lsha256epilog:
-
     st1       {v0.4s,v1.4s}, [x0]
     ldr       q10, [sp, #48]
     ldr       q9, [sp, #32]
