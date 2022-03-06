@@ -17,17 +17,8 @@ const uint32_t H_0[8] = {
 	0x5be0cd19,
 };
 
-void sha256_print_hash(uint32_t *H, const char *title) {
-	printf("-----------------------------------------------------------------------------------------\n");
-	printf("| %-85s |\n", title);
-	printf("-----------------------------------------------------------------------------------------\n");
-	printf("|   H[0]   |   H[1]   |   H[2]   |   H[3]   |   H[4]   |   H[5]   |   H[6]   |   H[7]   |\n");
-	printf("| %08x | %08x | %08x | %08x | %08x | %08x | %08x | %08x |\n", H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
-	printf("-----------------------------------------------------------------------------------------\n");
-}
-
-int main(int argc, char **argv) {
-	unsigned int i;
+int main(int argc, char* argv[]) {
+	uint32_t i;
 
 	// check arguments
 	if (argc != 2) {
@@ -38,7 +29,7 @@ int main(int argc, char **argv) {
 	// open input file
 	FILE *fp = fopen(argv[1], "r");
 	if (!fp) {
-		printf("Error opening file '%s' for reading.\n", argv[1]);
+		fprintf(stderr, "Error opening file '%s' for reading.\n", argv[1]);
 		return -1;
 	}
 
@@ -51,52 +42,47 @@ int main(int argc, char **argv) {
 	uint8_t buffer[64];
 	size_t len;
 	while (len = fread(buffer, 1, sizeof(buffer), fp)) {
+        if (ferror(fp)) {
+		    fprintf(stderr, "Error reading file '%s'.\n", argv[1]);
+            return 1;
+        }
 		bits += len * 8;
-
-		// preserve value of len by breaking on end of file (or error)
-		if (len < 64) {
+		// preserve value of len by breaking on end of file
+		if (feof(fp)) {
 			break;
 		}
-		sha256_block_data_order(H, buffer,1);
+		sha256_block_data_order(H, buffer, 1);
 	}
 
+	buffer[len] = 0x80;
 	// add padding
 	if (len < 56) {
 		// padd current block to 56 byte
-		buffer[len] = 0x80;
 		i = len + 1;
 	} else {
 		// fill up current block and update hash
-		buffer[len] = 0x80;
 		for (i = len + 1; i < 64; i++) {
 			buffer[i] = 0x00;
 		}
-
 		sha256_block_data_order(H, buffer,1);
-
 		// add (almost) one block of zero bytes
 		i = 0;
 	}
-	for (; i < 56; i++) {
-		buffer[i] = 0x00;
+	while (i < 56) {
+		buffer[i++] = 0x00;
 	}
-
 	// add message length in bits in big endian
 	for (i = 0; i < 8; i++) {
 		buffer[63 - i] = bits >> (i * 8);
 	}
-
 	sha256_block_data_order(H, buffer,1);
-
-	// print hash
-	sha256_print_hash(H, "Final Hash");
 
 	// convert hash to char array (in correct order)
 	for (i = 0; i < 8; i++) {
-		buffer[i*4 + 0] = H[i] >> 24;
-		buffer[i*4 + 1] = H[i] >> 16;
-		buffer[i*4 + 2] = H[i] >>  8;
-		buffer[i*4 + 3] = H[i];
+		buffer[4 * i + 0] = H[i] >> 24;
+		buffer[4 * i + 1] = H[i] >> 16;
+		buffer[4 * i + 2] = H[i] >>  8;
+		buffer[4 * i + 3] = H[i];
 	}
 
 	// print hash
@@ -105,6 +91,5 @@ int main(int argc, char **argv) {
 		printf("%02x", buffer[i]);
 	}
 	printf("\n");
-
 	return 0;
 }
