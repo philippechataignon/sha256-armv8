@@ -9,11 +9,13 @@
 
 # void sha256_block_data_order (uint32_t *x0=H, const void *x1=buffer, size_t x2=n);
 
+.section .text
+
 sha256_block_data_order:
 
 .Lsha256prolog:
-    sub       sp, sp, #64                   // get 64 bits on stack
-    str       q8, [sp, #16]
+    sub       sp, sp, #64                   // get 64 bytes on stack
+    str       q8, [sp, #16]                 // save registers in q8-q15
     str       q9, [sp, #32]
     str       q10, [sp, #48]
     adr       x3, .LKConstant256            // load 256 int constants in v16-v31
@@ -21,7 +23,7 @@ sha256_block_data_order:
     ld1       {v20.4s-v23.4s}, [x3], #64
     ld1       {v24.4s-v27.4s}, [x3], #64
     ld1       {v28.4s-v31.4s}, [x3], #64
-    ld1       {v0.4s}, [x0], #16            // load init H in v0-v1
+    ld1       {v0.4s}, [x0], #16            // load initial H in v0-v1
     ld1       {v1.4s}, [x0]
     sub       x0, x0, #16                   // restore x0 to initial value
     
@@ -127,13 +129,14 @@ sha256_block_data_order:
     bne       .Lsha256loop
 
 .Lsha256epilog:
-    st1       {v0.4s,v1.4s}, [x0]
-    ldr       q10, [sp, #48]
+    st1       {v0.4s,v1.4s}, [x0]   // store hash in v0-v1
+    ldr       q10, [sp, #48]        // restore q registers callee-saved
     ldr       q9, [sp, #32]
     ldr       q8, [sp, #16]
     add       sp, sp, #64           // restore sp
     ret
 
+.section .rodata
 .align  5
 .LKConstant256:
 .word   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5
@@ -152,6 +155,3 @@ sha256_block_data_order:
 .word   0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3
 .word   0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208
 .word   0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
-
-.size   sha256_block_data_order,.-sha256_block_data_order
-.align	2
