@@ -53,14 +53,18 @@ int main(int argc, char* argv[]) {
         if (feof(fp)) {
             break;
         }
+        if (len % 64 != 0) {
+            fprintf(stderr, "Error: len must be a 64 multiple.\n");
+            return 2;
+        }
         sha256_block_data_order(H, buffer, len / 64);
     }
-    uint32_t n = len / 64;              // # full blocks
+    uint32_t n = len / 64;              // # of full blocks
     if (n > 0) {
         sha256_block_data_order(H, buffer, n);
     }
-    uint32_t base = 64 * n;             // addr base last block
-    len = len % 64;                     // # bytes in last block
+    uint32_t base = 64 * n;             // addr base of last block
+    len = len % 64;                     // # of bytes in last block
     buffer[base + len] = 0x80;          // add end byte
     // add padding
     if (len < 56) {
