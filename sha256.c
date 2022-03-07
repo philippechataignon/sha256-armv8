@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <byteswap.h>
 
-void sha256_block_data_order (uint32_t *ctx, const void *in, size_t num);
+//void sha256_process_arm(uint32_t ctx[8], const uint8_t data[], uint32_t length);
+void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t length);
 
 // SHA-256 initial hash value
 const uint32_t H_0[8] = {
@@ -57,11 +58,11 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "Error: len must be a 64 multiple.\n");
             return -4;
         }
-        sha256_block_data_order(H, buffer, len / 64);
+        sha256_process_arm(H, buffer, len / 64);
     }
     uint32_t n = len / 64;              // # of full blocks
     if (n > 0) {
-        sha256_block_data_order(H, buffer, n);
+        sha256_process_arm(H, buffer, n);
     }
     uint32_t base = 64 * n;             // addr base of last block
     len = len % 64;                     // # of bytes in last block
@@ -75,7 +76,7 @@ int main(int argc, char* argv[]) {
         for (i = len + 1; i < 64; i++) {
             buffer[base + i] = 0x00;
         }
-        sha256_block_data_order(H, buffer + base, 1);
+        sha256_process_arm(H, buffer + base, 1);
         // add (almost) one block of zero bytes
         i = 0;
     }
@@ -84,7 +85,7 @@ int main(int argc, char* argv[]) {
     }
     // add message length in bits in big endian
     *(uint64_t*)(buffer + base + 56) = bswap_64(total << 3);
-    sha256_block_data_order(H, buffer + base, 1);
+    sha256_process_arm(H, buffer + base, 1);
 
     for (i = 0; i < 8; i++) {
         printf("%08x", H[i]);
