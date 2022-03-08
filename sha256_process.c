@@ -21,6 +21,7 @@ static const uint32_t K[] =
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 };
 
+/* from https://fossies.org/linux/nss/nss/lib/freebl/sha256-armv8.c */
 #define ROUND(n, a, b, c, d)               \
     {                                      \
         uint32x4_t wt = w0;                \

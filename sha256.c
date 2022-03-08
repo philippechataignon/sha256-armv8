@@ -65,23 +65,19 @@ int main(int argc, char* argv[]) {
         sha256_process_arm(H, buffer, n);
     }
     uint32_t base = 64 * n;             // addr base of last block
-    len = len % 64;                     // # of bytes in last block
-    buffer[base + len] = 0x80;          // add end byte
+    len = len - base;                   // # of bytes in last block
+    buffer[base + len] = 0x80;          // add end bit/byte
     // add padding
     if (len < 56) {
         // padd current block to 56 byte
-        i = len + 1;
+        memset(buffer + base + len + 1, 0, 55 - len);
     } else {
-        // fill up current block and update hash
-        for (i = len + 1; i < 64; i++) {
-            buffer[base + i] = 0x00;
-        }
+        // fill up current block to 64 byte and update hash
+        memset(buffer + base + len + 1, 0, 63 - len);
+        // extra process
         sha256_process_arm(H, buffer + base, 1);
         // add (almost) one block of zero bytes
-        i = 0;
-    }
-    for (; i < 56; i++) {
-        buffer[base + i] = 0x00;
+        memset(buffer + base, 0, 56);
     }
     // add message length in bits in big endian
     *(uint64_t*)(buffer + base + 56) = bswap_64(total << 3);
