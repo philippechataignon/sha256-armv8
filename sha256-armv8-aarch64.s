@@ -17,6 +17,8 @@ sha256_process_arm:
     str       q8, [sp, #16]                 // save registers in q8-q15
     str       q9, [sp, #32]
     str       q10, [sp, #48]
+    cmp       x2, #0                        // if count = 0, exit
+    beq       .Lsha256epilog
     adr       x3, K256            // load 64 int32 constants in v16-v31
     ld1       {v16.4s-v19.4s}, [x3], #64
     ld1       {v20.4s-v23.4s}, [x3], #64

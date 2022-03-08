@@ -59,10 +59,11 @@ int main(int argc, char* argv[]) {
         }
         sha256_process_arm(H, buffer, len / 64);
     }
+    /* process 64 bytes blocks */
     uint32_t n = len / 64;              // # of full blocks
-    if (n > 0) {
-        sha256_process_arm(H, buffer, n);
-    }
+    sha256_process_arm(H, buffer, n);
+
+    /* process last block: padding */
     uint8_t* base = buffer + 64 * n;    // addr base of last block
     len = len - 64 * n;                 // # of bytes in last block
     base[len++] = 0x80;                 // add end bit/byte
