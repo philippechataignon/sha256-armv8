@@ -37,9 +37,9 @@ static const uint32_t K[] =
 /*  state, and the caller is responsible for padding the final block.        */
 void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t count)
 {
+    uint32x4_t h0 = vld1q_u32(state);
+    uint32x4_t h1 = vld1q_u32(state + 4);
     while(count--) {
-        uint32x4_t h0 = vld1q_u32(state);
-        uint32x4_t h1 = vld1q_u32(state + 4);
 
         uint32x4_t a = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data)));
         uint32x4_t b = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data + 16)));
@@ -69,9 +69,9 @@ void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t count)
         h0 = vaddq_u32(h0, w0);
         h1 = vaddq_u32(h1, w1);
 
-        vst1q_u32(state, h0);
-        vst1q_u32(state + 4, h1);
         /* next 64 bytes block */
         data += 64;
     }
+    vst1q_u32(state, h0);
+    vst1q_u32(state + 4, h1);
 }
