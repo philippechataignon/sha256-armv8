@@ -3,22 +3,21 @@
 
 # SHA256 assembly implementation for ARMv8 AArch64
 
-.global	sha256_block_data_order
-.type	sha256_block_data_order,%function
+.global	sha256_process_arm
 .align  2
 
 # void sha256_block_data_order (uint32_t *x0=H, const void *x1=buffer, size_t x2=n);
 
 .section .text
 
-sha256_block_data_order:
+sha256_process_arm:
 
 .Lsha256prolog:
     sub       sp, sp, #64                   // get 64 bytes on stack
     str       q8, [sp, #16]                 // save registers in q8-q15
     str       q9, [sp, #32]
     str       q10, [sp, #48]
-    adr       x3, .LKConstant256            // load 64 int32 constants in v16-v31
+    adr       x3, K256            // load 64 int32 constants in v16-v31
     ld1       {v16.4s-v19.4s}, [x3], #64
     ld1       {v20.4s-v23.4s}, [x3], #64
     ld1       {v24.4s-v27.4s}, [x3], #64
@@ -138,7 +137,7 @@ sha256_block_data_order:
 
 .section .rodata
 .align  5
-.LKConstant256:
+K256:
 .word   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5
 .word   0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5
 .word   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3
