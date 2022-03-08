@@ -64,24 +64,24 @@ int main(int argc, char* argv[]) {
     if (n > 0) {
         sha256_process_arm(H, buffer, n);
     }
-    uint32_t base = 64 * n;             // addr base of last block
-    len = len - base;                   // # of bytes in last block
-    buffer[base + len] = 0x80;          // add end bit/byte
-    // add padding
-    if (len < 56) {
+    uint8_t* base = buffer + 64 * n;    // addr base of last block
+    len = len - 64 * n;                 // # of bytes in last block
+    base[len++] = 0x80;                 // add end bit/byte
+
+    if (len <= 56) {
         // padd current block to 56 byte
-        memset(buffer + base + len + 1, 0, 55 - len);
+        memset(base + len, 0, 56 - len);
     } else {
         // fill up current block to 64 byte and update hash
-        memset(buffer + base + len + 1, 0, 63 - len);
+        memset(base + len, 0, 64 - len);
         // extra process
-        sha256_process_arm(H, buffer + base, 1);
+        sha256_process_arm(H, base, 1);
         // add (almost) one block of zero bytes
-        memset(buffer + base, 0, 56);
+        memset(base, 0, 56);
     }
     // add message length in bits in big endian
-    *(uint64_t*)(buffer + base + 56) = bswap_64(total << 3);
-    sha256_process_arm(H, buffer + base, 1);
+    *(uint64_t*)(base + 56) = bswap_64(total << 3);
+    sha256_process_arm(H, base, 1);
 
     for (i = 0; i < 8; i++) {
         printf("%08x", H[i]);
