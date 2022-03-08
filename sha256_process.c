@@ -3,184 +3,75 @@
 
 static const uint32_t K[] =
 {
-    0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
-    0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
-    0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
-    0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
-    0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC,
-    0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
-    0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7,
-    0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
-    0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
-    0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
-    0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3,
-    0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
-    0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5,
-    0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
-    0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
-    0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2,
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 };
+
+#define ROUND(n, a, b, c, d)               \
+    {                                      \
+        uint32x4_t t = vaddq_u32(a, vld1q_u32(K + 4 * n)); \
+        uint32x4_t wt = w0;                \
+        w0 = vsha256hq_u32(w0, w1, t);     \
+        w1 = vsha256h2q_u32(w1, wt, t);    \
+        if (n < 12) {                      \
+            a = vsha256su0q_u32(a, b);     \
+            a = vsha256su1q_u32(a, c, d);  \
+        }                                  \
+    }
 
 /* Process multiple blocks. The caller is responsible for setting the initial */
 /*  state, and the caller is responsible for padding the final block.        */
 void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t count)
 {
-    uint32x4_t STATE0, STATE1, ABEF_SAVE, CDGH_SAVE;
-    uint32x4_t MSG0, MSG1, MSG2, MSG3;
-    uint32x4_t TMP0, TMP1, TMP2;
+    while(count--) {
+        uint32x4_t h0 = vld1q_u32(state);
+        uint32x4_t h1 = vld1q_u32(state + 4);
 
-    /* Load state */
-    STATE0 = vld1q_u32(state);
-    STATE1 = vld1q_u32(state + 4);
+        uint32x4_t a = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data)));
+        uint32x4_t b = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data + 16)));
+        uint32x4_t c = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data + 32)));
+        uint32x4_t d = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data + 48)));
 
-    while (count-- > 0)
-    {
-        /* Save state */
-        ABEF_SAVE = STATE0;
-        CDGH_SAVE = STATE1;
+        uint32x4_t w0 = h0;
+        uint32x4_t w1 = h1;
 
-        /* Load message */
-        MSG0 = vld1q_u32((const uint32_t *)(data));
-        MSG1 = vld1q_u32((const uint32_t *)(data + 16));
-        MSG2 = vld1q_u32((const uint32_t *)(data + 32));
-        MSG3 = vld1q_u32((const uint32_t *)(data + 48));
+        ROUND(0, a, b, c, d)
+        ROUND(1, b, c, d, a)
+        ROUND(2, c, d, a, b)
+        ROUND(3, d, a, b, c)
+        ROUND(4, a, b, c, d)
+        ROUND(5, b, c, d, a)
+        ROUND(6, c, d, a, b)
+        ROUND(7, d, a, b, c)
+        ROUND(8, a, b, c, d)
+        ROUND(9, b, c, d, a)
+        ROUND(10, c, d, a, b)
+        ROUND(11, d, a, b, c)
+        ROUND(12, a, b, c, d)
+        ROUND(13, b, c, d, a)
+        ROUND(14, c, d, a, b)
+        ROUND(15, d, a, b, c)
 
-        /* Reverse for little endian */
-        MSG0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG0)));
-        MSG1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG1)));
-        MSG2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG2)));
-        MSG3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG3)));
+        h0 = vaddq_u32(h0, w0);
+        h1 = vaddq_u32(h1, w1);
 
-        TMP0 = vaddq_u32(MSG0, vld1q_u32(K + 0));
-
-        /* Rounds 0-3 */
-        MSG0 = vsha256su0q_u32(MSG0, MSG1);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG1, vld1q_u32(K + 4));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG0 = vsha256su1q_u32(MSG0, MSG2, MSG3);
-
-        /* Rounds 4-7 */
-        MSG1 = vsha256su0q_u32(MSG1, MSG2);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG2, vld1q_u32(K + 8));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG1 = vsha256su1q_u32(MSG1, MSG3, MSG0);
-
-        /* Rounds 8-11 */
-        MSG2 = vsha256su0q_u32(MSG2, MSG3);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG3, vld1q_u32(K + 12));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG2 = vsha256su1q_u32(MSG2, MSG0, MSG1);
-
-        /* Rounds 12-15 */
-        MSG3 = vsha256su0q_u32(MSG3, MSG0);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG0, vld1q_u32(K + 16));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG3 = vsha256su1q_u32(MSG3, MSG1, MSG2);
-
-        /* Rounds 16-19 */
-        MSG0 = vsha256su0q_u32(MSG0, MSG1);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG1, vld1q_u32(K + 20));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG0 = vsha256su1q_u32(MSG0, MSG2, MSG3);
-
-        /* Rounds 20-23 */
-        MSG1 = vsha256su0q_u32(MSG1, MSG2);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG2, vld1q_u32(K + 24));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG1 = vsha256su1q_u32(MSG1, MSG3, MSG0);
-
-        /* Rounds 24-27 */
-        MSG2 = vsha256su0q_u32(MSG2, MSG3);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG3, vld1q_u32(K + 28));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG2 = vsha256su1q_u32(MSG2, MSG0, MSG1);
-
-        /* Rounds 28-31 */
-        MSG3 = vsha256su0q_u32(MSG3, MSG0);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG0, vld1q_u32(K + 32));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG3 = vsha256su1q_u32(MSG3, MSG1, MSG2);
-
-        /* Rounds 32-35 */
-        MSG0 = vsha256su0q_u32(MSG0, MSG1);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG1, vld1q_u32(K + 36));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG0 = vsha256su1q_u32(MSG0, MSG2, MSG3);
-
-        /* Rounds 36-39 */
-        MSG1 = vsha256su0q_u32(MSG1, MSG2);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG2, vld1q_u32(K + 40));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG1 = vsha256su1q_u32(MSG1, MSG3, MSG0);
-
-        /* Rounds 40-43 */
-        MSG2 = vsha256su0q_u32(MSG2, MSG3);
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG3, vld1q_u32(K + 44));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-        MSG2 = vsha256su1q_u32(MSG2, MSG0, MSG1);
-
-        /* Rounds 44-47 */
-        MSG3 = vsha256su0q_u32(MSG3, MSG0);
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG0, vld1q_u32(K + 48));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-        MSG3 = vsha256su1q_u32(MSG3, MSG1, MSG2);
-
-        /* Rounds 48-51 */
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG1, vld1q_u32(K + 52));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-
-        /* Rounds 52-55 */
-        TMP2 = STATE0;
-        TMP0 = vaddq_u32(MSG2, vld1q_u32(K + 56));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-
-        /* Rounds 56-59 */
-        TMP2 = STATE0;
-        TMP1 = vaddq_u32(MSG3, vld1q_u32(K + 60));
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP0);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP0);
-
-        /* Rounds 60-63 */
-        TMP2 = STATE0;
-        STATE0 = vsha256hq_u32(STATE0, STATE1, TMP1);
-        STATE1 = vsha256h2q_u32(STATE1, TMP2, TMP1);
-
-        /* Combine state */
-        STATE0 = vaddq_u32(STATE0, ABEF_SAVE);
-        STATE1 = vaddq_u32(STATE1, CDGH_SAVE);
-
+        vst1q_u32(state, h0);
+        vst1q_u32(state + 4, h1);
         /* next 64 bytes block */
         data += 64;
     }
-
-    /* Save state */
-    vst1q_u32(&state[0], STATE0);
-    vst1q_u32(&state[4], STATE1);
 }
