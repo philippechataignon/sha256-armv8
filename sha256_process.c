@@ -23,7 +23,7 @@ static const uint32_t K[] =
 
 #define ROUND(n, a, b, c, d)               \
     {                                      \
-        uint32x4_t t = vaddq_u32(a, vld1q_u32(K + 4 * n)); \
+        uint32x4_t t = vaddq_u32(a, k##n); \
         uint32x4_t wt = w0;                \
         w0 = vsha256hq_u32(w0, w1, t);     \
         w1 = vsha256h2q_u32(w1, wt, t);    \
@@ -37,8 +37,26 @@ static const uint32_t K[] =
 /*  state, and the caller is responsible for padding the final block.        */
 void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t count)
 {
+    const uint32x4_t k0 = vld1q_u32(K);
+    const uint32x4_t k1 = vld1q_u32(K + 4);
+    const uint32x4_t k2 = vld1q_u32(K + 8);
+    const uint32x4_t k3 = vld1q_u32(K + 12);
+    const uint32x4_t k4 = vld1q_u32(K + 16);
+    const uint32x4_t k5 = vld1q_u32(K + 20);
+    const uint32x4_t k6 = vld1q_u32(K + 24);
+    const uint32x4_t k7 = vld1q_u32(K + 28);
+    const uint32x4_t k8 = vld1q_u32(K + 32);
+    const uint32x4_t k9 = vld1q_u32(K + 36);
+    const uint32x4_t k10 = vld1q_u32(K + 40);
+    const uint32x4_t k11 = vld1q_u32(K + 44);
+    const uint32x4_t k12 = vld1q_u32(K + 48);
+    const uint32x4_t k13 = vld1q_u32(K + 52);
+    const uint32x4_t k14 = vld1q_u32(K + 56);
+    const uint32x4_t k15 = vld1q_u32(K + 60);
+
     uint32x4_t h0 = vld1q_u32(state);
     uint32x4_t h1 = vld1q_u32(state + 4);
+
     while(count--) {
 
         uint32x4_t a = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(data)));
