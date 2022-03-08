@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <byteswap.h>
 
-//void sha256_process_arm(uint32_t ctx[8], const uint8_t data[], uint32_t length);
 void sha256_process_arm(uint32_t state[8], const uint8_t data[], uint32_t length);
 
 // SHA-256 initial hash value
