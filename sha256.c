@@ -19,7 +19,7 @@ const uint32_t H_0[8] = {
     0x5be0cd19,
 };
 
-uint8_t buffer[1<<22]; // 4M
+uint8_t buffer[1<<24]; // 16M
 
 int main(int argc, char* argv[]) {
     uint32_t i;
