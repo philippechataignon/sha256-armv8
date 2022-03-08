@@ -23,8 +23,8 @@ static const uint32_t K[] =
 
 #define ROUND(n, a, b, c, d)               \
     {                                      \
-        uint32x4_t t = vaddq_u32(a, k##n); \
         uint32x4_t wt = w0;                \
+        uint32x4_t t = vaddq_u32(a, k##n); \
         w0 = vsha256hq_u32(w0, w1, t);     \
         w1 = vsha256h2q_u32(w1, wt, t);    \
         if (n < 12) {                      \
