@@ -17,6 +17,7 @@ sha256_process_arm:
     str       q8, [sp, #16]                 // save registers in q8-q15
     str       q9, [sp, #32]
     str       q10, [sp, #48]
+    ld1       {v0.4s-v1.4s}, [x0]            // load initial H in v0-v1
     cmp       x2, #0                        // if count = 0, exit
     beq       .Lsha256epilog
     adr       x3, K256            // load 64 int32 constants in v16-v31
@@ -24,9 +25,6 @@ sha256_process_arm:
     ld1       {v20.4s-v23.4s}, [x3], #64
     ld1       {v24.4s-v27.4s}, [x3], #64
     ld1       {v28.4s-v31.4s}, [x3], #64
-    ld1       {v0.4s}, [x0], #16            // load initial H in v0-v1
-    ld1       {v1.4s}, [x0]
-    sub       x0, x0, #16                   // restore x0 to initial value
     
 .Lsha256loop:
     ld1       {v5.16b-v8.16b}, [x1], #64    // get 64 bytes block in v5-v8
@@ -34,14 +32,14 @@ sha256_process_arm:
     mov       v3.16b, v1.16b
     rev32     v5.16b, v5.16b                
     rev32     v6.16b, v6.16b
-    add       v9.4s, v5.4s, v16.4s
     rev32     v7.16b, v7.16b
+    rev32     v8.16b, v8.16b
+    add       v9.4s, v5.4s, v16.4s
     add       v10.4s, v6.4s, v17.4s
     mov       v4.16b, v2.16b
     sha256h   q2, q3, v9.4s
     sha256h2  q3, q4, v9.4s
     sha256su0 v5.4s, v6.4s
-    rev32     v8.16b, v8.16b
     add       v9.4s, v7.4s, v18.4s
     mov       v4.16b, v2.16b
     sha256h   q2, q3, v10.4s
